@@ -62,6 +62,17 @@ export class Version {
   }
 
   /**
+   * Try to parse a version string (loose mode). Returns null instead of throwing on invalid input.
+   */
+  static tryParse(raw: string): Version | null {
+    try {
+      return Version.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Strict parsing (equivalent to Go's StrictNewVersion).
    * Requires exact X.Y.Z format, no v prefix, no leading zeros.
    */
@@ -95,6 +106,17 @@ export class Version {
     if (metadata) validateMetadata(metadata);
 
     return new Version(major, minor, patch, prerelease, metadata, trimmed);
+  }
+
+  /**
+   * Try to parse a version string (strict mode). Returns null instead of throwing on invalid input.
+   */
+  static tryParseStrict(raw: string): Version | null {
+    try {
+      return Version.parseStrict(raw);
+    } catch {
+      return null;
+    }
   }
 
   /**

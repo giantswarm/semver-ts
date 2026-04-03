@@ -21,8 +21,7 @@ describe("Constraint checks (includePrerelease)", () => {
     it(label, () => {
       const v = Version.parse(tc.version);
       const c = Constraints.parse(tc.constraint);
-      c.includePrerelease = true;
-      expect(c.check(v)).toBe(tc.expected);
+      expect(c.check(v, { includePrerelease: true })).toBe(tc.expected);
     });
   }
 });

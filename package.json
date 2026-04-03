@@ -4,9 +4,17 @@
   "description": "A TypeScript library that mimics semantic versioning comparison and constraints parsing behavior of the Masterminds/semver Go library.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm test && npm run build"
   },
   "repository": {
     "type": "git",

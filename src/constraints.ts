@@ -27,18 +27,17 @@ interface ParsedConstraint {
 // OR groups of AND constraints.
 type ConstraintGroups = ParsedConstraint[][];
 
+export interface CheckOptions {
+  /** When true, prerelease versions satisfy constraints even without a prerelease tag. */
+  includePrerelease?: boolean;
+}
+
 export class Constraints {
   private groups: ConstraintGroups;
-  includePrerelease: boolean;
   private originalString: string;
 
-  private constructor(
-    groups: ConstraintGroups,
-    includePrerelease: boolean,
-    original: string,
-  ) {
+  private constructor(groups: ConstraintGroups, original: string) {
     this.groups = groups;
-    this.includePrerelease = includePrerelease;
     this.originalString = original;
   }
 
@@ -73,16 +72,28 @@ export class Constraints {
       throw new Error(`Invalid constraint: ${constraint}`);
     }
 
-    return new Constraints(groups, false, original);
+    return new Constraints(groups, original);
+  }
+
+  /**
+   * Try to parse a constraint string. Returns null instead of throwing on invalid input.
+   */
+  static tryParse(constraint: string): Constraints | null {
+    try {
+      return Constraints.parse(constraint);
+    } catch {
+      return null;
+    }
   }
 
   /**
    * Check if a version satisfies this constraint.
    */
-  check(version: Version): boolean {
+  check(version: Version, options?: CheckOptions): boolean {
+    const includePrerelease = options?.includePrerelease ?? false;
     // OR: any group must fully match
     for (const group of this.groups) {
-      if (this.checkGroup(group, version)) {
+      if (this.checkGroup(group, version, includePrerelease)) {
         return true;
       }
     }
@@ -92,17 +103,21 @@ export class Constraints {
   /**
    * Validate a version against this constraint, returning errors.
    */
-  validate(version: Version): { satisfied: boolean; errors: string[] } {
+  validate(
+    version: Version,
+    options?: CheckOptions,
+  ): { satisfied: boolean; errors: string[] } {
+    const includePrerelease = options?.includePrerelease ?? false;
     const errors: string[] = [];
     for (const group of this.groups) {
-      if (this.checkGroup(group, version)) {
+      if (this.checkGroup(group, version, includePrerelease)) {
         return { satisfied: true, errors: [] };
       }
     }
     // Collect errors from all groups
     for (const group of this.groups) {
       for (const c of group) {
-        if (!evalConstraint(c, version, this.includePrerelease)) {
+        if (!evalConstraint(c, version, includePrerelease)) {
           errors.push(
             `${version.toString()} does not satisfy ${c.original}`,
           );
@@ -119,10 +134,11 @@ export class Constraints {
   private checkGroup(
     group: ParsedConstraint[],
     version: Version,
+    includePrerelease: boolean,
   ): boolean {
     // Prerelease gate at group level: if ANY constraint in the group has a
     // prerelease, then prerelease versions are allowed for the whole group.
-    let groupIncludePrerelease = this.includePrerelease;
+    let groupIncludePrerelease = includePrerelease;
     if (!groupIncludePrerelease && version.prerelease !== "") {
       groupIncludePrerelease = group.some((c) => c.prerelease !== "");
     }

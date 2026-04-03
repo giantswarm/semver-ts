@@ -108,14 +108,12 @@ Constraints.parse(">=1.1, <2, !=1.2.3 || >= 3").check(Version.parse("3.0.0")); /
 
 #### Prerelease handling
 
-By default, constraints exclude prerelease versions unless the constraint itself contains a prerelease tag. Set `includePrerelease` to override this.
+By default, constraints exclude prerelease versions unless the constraint itself contains a prerelease tag. Pass `{ includePrerelease: true }` to `check()` or `validate()` to override this.
 
 ```typescript
 const c = Constraints.parse(">=1.0.0");
-c.check(Version.parse("1.5.0-beta")); // false (prerelease excluded)
-
-c.includePrerelease = true;
-c.check(Version.parse("1.5.0-beta")); // true
+c.check(Version.parse("1.5.0-beta"));                              // false (prerelease excluded)
+c.check(Version.parse("1.5.0-beta"), { includePrerelease: true }); // true
 
 // Constraints with prerelease tags always match prerelease versions
 Constraints.parse(">=1.0.0-0").check(Version.parse("1.5.0-beta")); // true

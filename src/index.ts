@@ -1,2 +1,2 @@
 export { Version, sort, comparePrerelease } from "./version.js";
-export { Constraints } from "./constraints.js";
+export { Constraints, type CheckOptions } from "./constraints.js";
