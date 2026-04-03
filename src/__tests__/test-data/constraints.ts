@@ -221,10 +221,26 @@ export const constraintTests: {
 
   // OR with ||
   { constraint: ">=1.1, <2, !=1.2.3 || > 3", version: "4.1.2", expected: true },
-  { constraint: ">=1.1, <2, !=1.2.3 || > 3", version: "3.1.2", expected: false },
-  { constraint: ">=1.1, <2, !=1.2.3 || >= 3", version: "3.0.0", expected: true },
-  { constraint: ">=1.1, <2, !=1.2.3 || > 3", version: "3.0.0", expected: false },
-  { constraint: ">=1.1, <2, !=1.2.3 || > 3", version: "1.2.3", expected: false },
+  {
+    constraint: ">=1.1, <2, !=1.2.3 || > 3",
+    version: "3.1.2",
+    expected: false,
+  },
+  {
+    constraint: ">=1.1, <2, !=1.2.3 || >= 3",
+    version: "3.0.0",
+    expected: true,
+  },
+  {
+    constraint: ">=1.1, <2, !=1.2.3 || > 3",
+    version: "3.0.0",
+    expected: false,
+  },
+  {
+    constraint: ">=1.1, <2, !=1.2.3 || > 3",
+    version: "1.2.3",
+    expected: false,
+  },
 
   // Space-separated AND with OR
   { constraint: ">=1.1 <2 !=1.2.3", version: "1.2.3", expected: false },
@@ -247,28 +263,80 @@ export const constraintTests: {
   { constraint: ">=1.1    < 2    != 1.2.3", version: "1.2.3", expected: false },
 
   // Extra whitespace with OR (comma-separated)
-  { constraint: ">= 1.1, <2, !=1.2.3 || > 3", version: "4.1.2", expected: true },
-  { constraint: ">= 1.1, <2, != 1.2.3 || > 3", version: "3.1.2", expected: false },
-  { constraint: ">= 1.1, <2, != 1.2.3 || >= 3", version: "3.0.0", expected: true },
-  { constraint: ">= 1.1, <2, !=1.2.3 || > 3", version: "3.0.0", expected: false },
-  { constraint: ">= 1.1, <2, !=1.2.3 || > 3", version: "1.2.3", expected: false },
+  {
+    constraint: ">= 1.1, <2, !=1.2.3 || > 3",
+    version: "4.1.2",
+    expected: true,
+  },
+  {
+    constraint: ">= 1.1, <2, != 1.2.3 || > 3",
+    version: "3.1.2",
+    expected: false,
+  },
+  {
+    constraint: ">= 1.1, <2, != 1.2.3 || >= 3",
+    version: "3.0.0",
+    expected: true,
+  },
+  {
+    constraint: ">= 1.1, <2, !=1.2.3 || > 3",
+    version: "3.0.0",
+    expected: false,
+  },
+  {
+    constraint: ">= 1.1, <2, !=1.2.3 || > 3",
+    version: "1.2.3",
+    expected: false,
+  },
 
   // Extra whitespace with OR (space-separated)
   { constraint: ">= 1.1 <2 != 1.2.3", version: "1.2.3", expected: false },
   { constraint: ">= 1.1 <2 != 1.2.3 || > 3", version: "4.1.2", expected: true },
-  { constraint: ">= 1.1 <2 != 1.2.3 || > 3", version: "3.1.2", expected: false },
-  { constraint: ">= 1.1 <2 != 1.2.3 || >= 3", version: "3.0.0", expected: true },
-  { constraint: ">= 1.1 < 2 !=1.2.3 || > 3", version: "3.0.0", expected: false },
+  {
+    constraint: ">= 1.1 <2 != 1.2.3 || > 3",
+    version: "3.1.2",
+    expected: false,
+  },
+  {
+    constraint: ">= 1.1 <2 != 1.2.3 || >= 3",
+    version: "3.0.0",
+    expected: true,
+  },
+  {
+    constraint: ">= 1.1 < 2 !=1.2.3 || > 3",
+    version: "3.0.0",
+    expected: false,
+  },
   { constraint: ">=1.1 < 2 !=1.2.3 || > 3", version: "1.2.3", expected: false },
 
   // Prerelease in constraints with range bounds
-  { constraint: ">= 1.0.0  <= 2.0.0-beta", version: "1.0.1-beta", expected: true },
+  {
+    constraint: ">= 1.0.0  <= 2.0.0-beta",
+    version: "1.0.1-beta",
+    expected: true,
+  },
   { constraint: ">= 1.0.0  <= 2.0.0-beta", version: "1.0.1", expected: true },
   { constraint: ">= 1.0.0  <= 2.0.0-beta", version: "3.0.0", expected: false },
-  { constraint: ">= 1.0.0  <= 2.0.0-beta || > 3", version: "1.0.1-beta", expected: true },
-  { constraint: ">= 1.0.0  <= 2.0.0-beta || > 3", version: "3.0.1-beta", expected: false },
-  { constraint: ">= 1.0.0  <= 2.0.0-beta != 1.0.1 || > 3", version: "1.0.1-beta", expected: true },
-  { constraint: ">= 1.0.0  <= 2.0.0-beta != 1.0.1-beta || > 3", version: "1.0.1-beta", expected: false },
+  {
+    constraint: ">= 1.0.0  <= 2.0.0-beta || > 3",
+    version: "1.0.1-beta",
+    expected: true,
+  },
+  {
+    constraint: ">= 1.0.0  <= 2.0.0-beta || > 3",
+    version: "3.0.1-beta",
+    expected: false,
+  },
+  {
+    constraint: ">= 1.0.0  <= 2.0.0-beta != 1.0.1 || > 3",
+    version: "1.0.1-beta",
+    expected: true,
+  },
+  {
+    constraint: ">= 1.0.0  <= 2.0.0-beta != 1.0.1-beta || > 3",
+    version: "1.0.1-beta",
+    expected: false,
+  },
   { constraint: ">= 1.0.0-0  <= 2.0.0", version: "1.0.1-beta", expected: true },
 
   // Hyphen ranges

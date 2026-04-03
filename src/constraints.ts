@@ -118,9 +118,7 @@ export class Constraints {
     for (const group of this.groups) {
       for (const c of group) {
         if (!evalConstraint(c, version, includePrerelease)) {
-          errors.push(
-            `${version.toString()} does not satisfy ${c.original}`,
-          );
+          errors.push(`${version.toString()} does not satisfy ${c.original}`);
         }
       }
     }
@@ -164,7 +162,8 @@ export class Constraints {
 function rewriteHyphenRanges(s: string): string {
   // Match: version SPACE - SPACE version
   // Version-like: digits possibly with dots and prerelease
-  const re = /([\d]+(?:\.[\d]+)?(?:\.[\d]+)?(?:-[\w.]+)?)\s+-\s+([\d]+(?:\.[\d]+)?(?:\.[\d]+)?(?:-[\w.]+)?)/g;
+  const re =
+    /([\d]+(?:\.[\d]+)?(?:\.[\d]+)?(?:-[\w.]+)?)\s+-\s+([\d]+(?:\.[\d]+)?(?:\.[\d]+)?(?:-[\w.]+)?)/g;
   return s.replace(re, (_, low, high) => `>= ${low}, <= ${high}`);
 }
 
@@ -495,7 +494,11 @@ function evalLessThanOrEqual(
 
   // Dirty: check component by component
   if (v.major > c.version.major) return false;
-  if (v.major === c.version.major && !c.minorDirty && v.minor > c.version.minor) {
+  if (
+    v.major === c.version.major &&
+    !c.minorDirty &&
+    v.minor > c.version.minor
+  ) {
     return false;
   }
 

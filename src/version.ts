@@ -11,8 +11,7 @@ const LOOSE_RE =
   /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([\w.+-]+?))?(?:\+([\w.+-]+?))?$/;
 
 // Regex for strict semver: exactly X.Y.Z with optional prerelease and metadata.
-const STRICT_RE =
-  /^(\d+)\.(\d+)\.(\d+)(?:-([\w.+-]+?))?(?:\+([\w.+-]+?))?$/;
+const STRICT_RE = /^(\d+)\.(\d+)\.(\d+)(?:-([\w.+-]+?))?(?:\+([\w.+-]+?))?$/;
 
 export class Version {
   readonly major: number;
@@ -124,12 +123,9 @@ export class Version {
    * Metadata is ignored. Prerelease versions are less than release versions.
    */
   compare(other: Version): -1 | 0 | 1 {
-    if (this.major !== other.major)
-      return this.major < other.major ? -1 : 1;
-    if (this.minor !== other.minor)
-      return this.minor < other.minor ? -1 : 1;
-    if (this.patch !== other.patch)
-      return this.patch < other.patch ? -1 : 1;
+    if (this.major !== other.major) return this.major < other.major ? -1 : 1;
+    if (this.minor !== other.minor) return this.minor < other.minor ? -1 : 1;
+    if (this.patch !== other.patch) return this.patch < other.patch ? -1 : 1;
     return comparePrerelease(this.prerelease, other.prerelease);
   }
 
@@ -244,9 +240,7 @@ function validatePrerelease(pre: string, strict: boolean): void {
     }
     // Strict: no leading zeros on numeric identifiers
     if (strict && isNumeric(seg) && seg.length > 1 && seg[0] === "0") {
-      throw new Error(
-        `Leading zeros in numeric prerelease identifier: ${seg}`,
-      );
+      throw new Error(`Leading zeros in numeric prerelease identifier: ${seg}`);
     }
   }
 }
