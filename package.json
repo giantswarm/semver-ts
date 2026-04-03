@@ -1,0 +1,33 @@
+{
+  "name": "@giantswarm/semver-ts",
+  "version": "0.1.0",
+  "description": "A TypeScript library that mimics semantic versioning comparison and constraints parsing behavior of the Masterminds/semver Go library.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/giantswarm/semver-ts.git"
+  },
+  "keywords": [
+    "semver",
+    "semantic-versioning",
+    "masterminds",
+    "flux"
+  ],
+  "author": "Giant Swarm",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/giantswarm/semver-ts/issues"
+  },
+  "homepage": "https://github.com/giantswarm/semver-ts#readme",
+  "devDependencies": {
+    "@types/node": "^25.5.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  }
+}
