@@ -17,7 +17,7 @@ permissions: {}
 
 jobs:
   audit:
-    uses: giantswarm/github-workflows/.github/workflows/js-dependency-audit.yaml@8f46dbe03b67afa98b0d573df50a1f027bae2532 # main
+    uses: giantswarm/github-workflows/.github/workflows/js-dependency-audit.yaml@main
     permissions:
       contents: read
       pull-requests: write
