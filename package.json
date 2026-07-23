@@ -35,7 +35,7 @@
   "homepage": "https://github.com/giantswarm/semver-ts#readme",
   "devDependencies": {
     "@types/node": "^25.5.1",
-    "typescript": "^6.0.2",
+    "typescript": "^7.0.0",
     "vitest": "^4.1.2"
   }
 }
