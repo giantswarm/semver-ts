@@ -8,9 +8,15 @@ Zero runtime dependencies. Tested against 344 cases derived from the Masterminds
 
 ## Installation
 
+The package is not published to npm. Install it from git, pinned to a tag:
+
 ```sh
-npm install @giantswarm/semver-ts
+yarn add @giantswarm/semver-ts@github:giantswarm/semver-ts#v0.1.0
 ```
+
+The built `dist/` is committed, and CI fails when it is out of date with `src/`. Run `npm run build` after changing `src/`.
+
+It is an ES module. `require()` works on Node.js 22.12+ and 24.
 
 ## Usage
 
@@ -22,20 +28,20 @@ npm install @giantswarm/semver-ts
 import { Version } from "@giantswarm/semver-ts";
 
 const v = Version.parse("v1.2.3-beta.1+build.42");
-console.log(v.major);      // 1
-console.log(v.minor);      // 2
-console.log(v.patch);      // 3
+console.log(v.major); // 1
+console.log(v.minor); // 2
+console.log(v.patch); // 3
 console.log(v.prerelease); // "beta.1"
-console.log(v.metadata);   // "build.42"
+console.log(v.metadata); // "build.42"
 console.log(v.toString()); // "1.2.3-beta.1+build.42"
 
 // Loose parsing accepts incomplete versions
-Version.parse("v2.1");   // 2.1.0
-Version.parse("3");      // 3.0.0
+Version.parse("v2.1"); // 2.1.0
+Version.parse("3"); // 3.0.0
 
 // Strict parsing rejects incomplete or prefixed versions
 Version.parseStrict("1.2.3"); // OK
-Version.parseStrict("v1.2");  // throws
+Version.parseStrict("v1.2"); // throws
 ```
 
 ### Comparing versions
@@ -47,9 +53,9 @@ const a = Version.parse("1.2.3");
 const b = Version.parse("1.3.0");
 
 a.compare(b); // -1 (a < b)
-a.lt(b);      // true
-a.gt(b);      // false
-a.eq(b);      // false
+a.lt(b); // true
+a.gt(b); // false
+a.eq(b); // false
 
 // Prerelease versions are less than their release counterpart
 const rc = Version.parse("2.0.0-rc.1");
@@ -83,15 +89,15 @@ c.check(Version.parse("2.0.0")); // false
 
 #### Operators
 
-| Syntax | Example | Meaning |
-|--------|---------|---------|
-| `=` | `=1.2.3` | Exact match (default when no operator) |
-| `!=` | `!=1.2.3` | Not equal |
-| `>` `>=` `<` `<=` | `>=1.2.0` | Comparison |
-| `~` | `~1.2.3` | Patch-level changes allowed (`>=1.2.3, <1.3.0`) |
-| `^` | `^1.2.3` | Minor-level changes allowed (`>=1.2.3, <2.0.0`) |
-| `*` `x` `X` | `1.2.x` | Wildcard (`>=1.2.0, <1.3.0`) |
-| `-` | `1.2 - 2.0` | Hyphen range (`>=1.2.0, <=2.0.0`) |
+| Syntax            | Example     | Meaning                                         |
+| ----------------- | ----------- | ----------------------------------------------- |
+| `=`               | `=1.2.3`    | Exact match (default when no operator)          |
+| `!=`              | `!=1.2.3`   | Not equal                                       |
+| `>` `>=` `<` `<=` | `>=1.2.0`   | Comparison                                      |
+| `~`               | `~1.2.3`    | Patch-level changes allowed (`>=1.2.3, <1.3.0`) |
+| `^`               | `^1.2.3`    | Minor-level changes allowed (`>=1.2.3, <2.0.0`) |
+| `*` `x` `X`       | `1.2.x`     | Wildcard (`>=1.2.0, <1.3.0`)                    |
+| `-`               | `1.2 - 2.0` | Hyphen range (`>=1.2.0, <=2.0.0`)               |
 
 Constraints can be combined with AND (comma or space) and OR (`||`):
 
@@ -112,7 +118,7 @@ By default, constraints exclude prerelease versions unless the constraint itself
 
 ```typescript
 const c = Constraints.parse(">=1.0.0");
-c.check(Version.parse("1.5.0-beta"));                              // false (prerelease excluded)
+c.check(Version.parse("1.5.0-beta")); // false (prerelease excluded)
 c.check(Version.parse("1.5.0-beta"), { includePrerelease: true }); // true
 
 // Constraints with prerelease tags always match prerelease versions
@@ -122,8 +128,8 @@ Constraints.parse(">=1.0.0-0").check(Version.parse("1.5.0-beta")); // true
 ## Compatibility
 
 | @giantswarm/semver-ts version | github.com/Masterminds/semver |
-|-|-|
-| v0.1.0 | v3.4.0 |
+| ----------------------------- | ----------------------------- |
+| v0.1.0                        | v3.4.0                        |
 
 ## License
 
