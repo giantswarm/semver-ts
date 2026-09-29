@@ -86,8 +86,51 @@ export class Constraints {
         }
         return { satisfied: false, errors };
     }
+    /**
+     * The lowest version that satisfies this constraint, or null when no version
+     * does. A pre-release is only returned when the constraint names one, as
+     * `check` only admits pre-releases then.
+     *
+     * Upper bounds and `!=` exclusions do not move the lower bound: when the
+     * lowest candidate of a group is excluded (`>=1.2.3 !=1.2.3`), that group
+     * yields no version.
+     */
+    minVersion() {
+        let lowest = null;
+        for (const group of this.groups) {
+            const candidate = this.lowestOfGroup(group);
+            if (candidate && (!lowest || candidate.lt(lowest))) {
+                lowest = candidate;
+            }
+        }
+        return lowest;
+    }
+    /**
+     * The highest of the given versions that satisfies this constraint, or null
+     * when none does. This is the version Flux selects for an OCIRepository or
+     * HelmRepository semver range.
+     */
+    maxSatisfying(versions, options) {
+        let highest = null;
+        for (const version of versions) {
+            if (this.check(version, options) && (!highest || version.gt(highest))) {
+                highest = version;
+            }
+        }
+        return highest;
+    }
     toString() {
         return this.originalString;
+    }
+    lowestOfGroup(group) {
+        let floor = new Version(0, 0, 0, "", "", "0.0.0");
+        for (const c of group) {
+            const bound = lowerBound(c);
+            if (bound && bound.gt(floor)) {
+                floor = bound;
+            }
+        }
+        return this.checkGroup(group, floor, false) ? floor : null;
     }
     checkGroup(group, version, includePrerelease) {
         // Prerelease gate at group level: if ANY constraint in the group has a
@@ -102,6 +145,36 @@ export class Constraints {
             }
         }
         return true;
+    }
+}
+// =============================================================================
+// Lower bounds
+// =============================================================================
+/** The lowest version a single constraint admits, or null if it sets no lower bound. */
+function lowerBound(c) {
+    const { major, minor, patch } = c.version;
+    switch (c.op) {
+        case "=":
+        case ">=":
+        case "~":
+        case "^":
+            return c.version;
+        case ">":
+            if (c.majorDirty)
+                return null;
+            if (c.minorDirty)
+                return new Version(major + 1, 0, 0, "", "", "");
+            if (c.patchDirty)
+                return new Version(major, minor + 1, 0, "", "", "");
+            if (c.prerelease !== "") {
+                // The lowest pre-release above `1.2.3-rc.1` is `1.2.3-rc.1.0`.
+                return new Version(major, minor, patch, `${c.prerelease}.0`, "", "");
+            }
+            return new Version(major, minor, patch + 1, "", "", "");
+        case "<":
+        case "<=":
+        case "!=":
+            return null;
     }
 }
 // =============================================================================
