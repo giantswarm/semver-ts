@@ -1,6 +1,6 @@
 {
   "name": "@giantswarm/semver-ts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A TypeScript library that mimics semantic versioning comparison and constraints parsing behavior of the Masterminds/semver Go library.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

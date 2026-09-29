@@ -86,8 +86,72 @@ export class Constraints {
         }
         return { satisfied: false, errors };
     }
+    /**
+     * The lowest version that satisfies this constraint, or null when no version
+     * does. A pre-release is only returned when the constraint names one, as
+     * `check` only admits pre-releases then. The result carries no metadata, and
+     * `toOriginalString()` equals `toString()`.
+     */
+    minVersion() {
+        let lowest = null;
+        for (const group of this.groups) {
+            const candidate = this.lowestOfGroup(group);
+            if (candidate && (!lowest || candidate.lt(lowest))) {
+                lowest = candidate;
+            }
+        }
+        return lowest;
+    }
+    /**
+     * The highest of the given versions that satisfies this constraint, or null
+     * when none does, as Flux selects the version for a semver range. Of
+     * versions with equal precedence (`1.2.3+a`, `1.2.3+b`) the first given is
+     * returned; Flux does not define which one it picks.
+     */
+    maxSatisfying(versions, options) {
+        let highest = null;
+        for (const version of versions) {
+            if ((!highest || version.gt(highest)) && this.check(version, options)) {
+                highest = version;
+            }
+        }
+        return highest;
+    }
     toString() {
         return this.originalString;
+    }
+    /**
+     * Starts at the lowest version at all and moves up past every constraint
+     * that rejects the candidate. Each step only skips versions the rejecting
+     * constraint rules out, so the first accepted candidate is the lowest; an
+     * upper bound rejecting it means no version satisfies the group.
+     */
+    lowestOfGroup(group) {
+        // `checkGroup` admits pre-releases for the whole group when any of its
+        // constraints names one.
+        const prerelease = group.some((c) => c.prerelease !== "");
+        let floor = makeVersion(0, 0, 0, prerelease ? "0" : "");
+        // Each constraint rejects the rising candidate at most once before it is
+        // either passed or found to be an upper bound.
+        for (let step = 0; step <= group.length; step++) {
+            if (this.checkGroup(group, floor, false)) {
+                return floor;
+            }
+            let next = null;
+            for (const c of group) {
+                if (evalConstraint(c, floor, prerelease))
+                    continue;
+                const past = stepPast(c, floor, prerelease);
+                if (!past)
+                    return null;
+                if (!next || past.gt(next))
+                    next = past;
+            }
+            if (!next || !next.gt(floor))
+                return null;
+            floor = next;
+        }
+        return null;
     }
     checkGroup(group, version, includePrerelease) {
         // Prerelease gate at group level: if ANY constraint in the group has a
@@ -102,6 +166,79 @@ export class Constraints {
             }
         }
         return true;
+    }
+}
+// =============================================================================
+// Lower bounds
+// =============================================================================
+function makeVersion(major, minor, patch, prerelease) {
+    const text = `${major}.${minor}.${patch}${prerelease ? `-${prerelease}` : ""}`;
+    return new Version(major, minor, patch, prerelease, "", text);
+}
+/**
+ * The lowest release, or with `prerelease` the lowest pre-release, of the given
+ * version: `1.2.3`, or `1.2.3-0` below every other pre-release of it.
+ */
+function lowestOf(major, minor, patch, prerelease) {
+    return makeVersion(major, minor, patch, prerelease ? "0" : "");
+}
+/** The version directly above `v`: the next patch, or with `prerelease` the next pre-release. */
+function nextAbove(v, prerelease) {
+    if (prerelease && v.prerelease !== "") {
+        return makeVersion(v.major, v.minor, v.patch, `${v.prerelease}.0`);
+    }
+    return lowestOf(v.major, v.minor, v.patch + 1, prerelease);
+}
+/**
+ * The lowest version above `floor` that constraint `c`, which rejects `floor`,
+ * could still admit, or null when `c` admits nothing at or above `floor`.
+ */
+function stepPast(c, floor, prerelease) {
+    const { major, minor } = c.version;
+    switch (c.op) {
+        case "<":
+        case "<=":
+            // An upper bound: nothing higher is admitted either.
+            return null;
+        case "!=": {
+            // Try the next version first: Masterminds admits some pre-releases
+            // inside a wildcard exclusion (`!=1.2.x` admits `1.2.5-0`).
+            const next = nextAbove(floor, prerelease);
+            if (evalConstraint(c, next, prerelease))
+                return next;
+            // A wildcard major (`!=*`) marks minor dirty too, and Masterminds
+            // compares its major like any other: jump to the next major as well.
+            if (c.minorDirty)
+                return lowestOf(major + 1, 0, 0, prerelease);
+            if (c.patchDirty)
+                return lowestOf(major, minor + 1, 0, prerelease);
+            return nextAbove(c.version, prerelease);
+        }
+        case ">": {
+            const { patch } = c.version;
+            let bound;
+            if (c.minorDirty)
+                bound = lowestOf(major + 1, 0, 0, prerelease);
+            else if (c.patchDirty)
+                bound = lowestOf(major, minor + 1, 0, prerelease);
+            else if (c.prerelease !== "") {
+                // The lowest pre-release above `1.2.3-rc.1` is `1.2.3-rc.1.0`.
+                bound = makeVersion(major, minor, patch, `${c.prerelease}.0`);
+            }
+            else
+                bound = lowestOf(major, minor, patch + 1, prerelease);
+            return bound.gt(floor) ? bound : null;
+        }
+        default: {
+            // `=`, `>=`, `~` and `^` admit one contiguous range starting at their
+            // version: below it, move up to it; above it, nothing higher is admitted.
+            // A caret with a wildcard minor or patch ignores its pre-release, so
+            // `^1.2.x-alpha` starts at `1.2.0`, or `1.2.0-0`.
+            const bound = c.op === "^" && (c.minorDirty || c.patchDirty)
+                ? lowestOf(major, c.minorDirty ? 0 : minor, 0, prerelease)
+                : makeVersion(c.version.major, c.version.minor, c.version.patch, c.prerelease);
+            return bound.gt(floor) ? bound : null;
+        }
     }
 }
 // =============================================================================

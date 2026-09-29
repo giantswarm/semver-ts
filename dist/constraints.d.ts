@@ -34,7 +34,28 @@ export declare class Constraints {
         satisfied: boolean;
         errors: string[];
     };
+    /**
+     * The lowest version that satisfies this constraint, or null when no version
+     * does. A pre-release is only returned when the constraint names one, as
+     * `check` only admits pre-releases then. The result carries no metadata, and
+     * `toOriginalString()` equals `toString()`.
+     */
+    minVersion(): Version | null;
+    /**
+     * The highest of the given versions that satisfies this constraint, or null
+     * when none does, as Flux selects the version for a semver range. Of
+     * versions with equal precedence (`1.2.3+a`, `1.2.3+b`) the first given is
+     * returned; Flux does not define which one it picks.
+     */
+    maxSatisfying(versions: readonly Version[], options?: CheckOptions): Version | null;
     toString(): string;
+    /**
+     * Starts at the lowest version at all and moves up past every constraint
+     * that rejects the candidate. Each step only skips versions the rejecting
+     * constraint rules out, so the first accepted candidate is the lowest; an
+     * upper bound rejecting it means no version satisfies the group.
+     */
+    private lowestOfGroup;
     private checkGroup;
 }
 //# sourceMappingURL=constraints.d.ts.map

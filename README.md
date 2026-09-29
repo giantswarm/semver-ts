@@ -11,7 +11,7 @@ Zero runtime dependencies. Tested against 344 cases derived from the Masterminds
 The package is not published to npm. Install it from git, pinned to a tag:
 
 ```sh
-yarn add @giantswarm/semver-ts@github:giantswarm/semver-ts#v0.1.0
+yarn add @giantswarm/semver-ts@github:giantswarm/semver-ts#v0.2.0
 ```
 
 The built `dist/` is committed, and CI fails when it is out of date with `src/`. Run `npm run build` after changing `src/`.
@@ -125,11 +125,36 @@ c.check(Version.parse("1.5.0-beta"), { includePrerelease: true }); // true
 Constraints.parse(">=1.0.0-0").check(Version.parse("1.5.0-beta")); // true
 ```
 
+#### Lowest and highest matching version
+
+Masterminds/semver has no counterpart for these two; they are built on `check()`.
+
+`minVersion()` returns the lowest version a constraint admits, or `null` when it admits none. It returns a pre-release only when the constraint names one, as `check()` admits pre-releases only then.
+
+`maxSatisfying()` returns the highest of the given versions that satisfies the constraint, as Flux selects the version for a semver range. Of versions with equal precedence (`1.2.3+a`, `1.2.3+b`) it returns the first given; Flux does not define which one it picks. It takes the same options as `check()`.
+
+```typescript
+Constraints.parse(">=1.2.3 <2.0.0").minVersion(); // 1.2.3
+Constraints.parse("^1.2.3 || ^0.5.0").minVersion(); // 0.5.0
+Constraints.parse("<2.0.0").minVersion(); // 0.0.0
+Constraints.parse(">1.2.3").minVersion(); // 1.2.4
+Constraints.parse(">=1.2.3 !=1.2.3").minVersion(); // 1.2.4
+Constraints.parse(">1.2.3 <2.0.0-0").minVersion(); // 1.2.4-0
+Constraints.parse(">=1.2.3 <1.0.0").minVersion(); // null
+
+const tags = ["1.2.0", "1.2.5", "1.3.0-rc.1", "1.3.0", "2.0.0"].map((t) =>
+  Version.parse(t),
+);
+Constraints.parse("~1.2.0").maxSatisfying(tags); // 1.2.5
+Constraints.parse("^1.0.0").maxSatisfying(tags); // 1.3.0
+```
+
 ## Compatibility
 
 | @giantswarm/semver-ts version | github.com/Masterminds/semver |
 | ----------------------------- | ----------------------------- |
 | v0.1.0                        | v3.4.0                        |
+| v0.2.0                        | v3.4.0                        |
 
 ## License
 
