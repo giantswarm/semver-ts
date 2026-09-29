@@ -308,39 +308,24 @@ function parseSingleConstraint(opStr, versionStr, original) {
     let major = 0;
     let minor = 0;
     let patch = 0;
-    if (parts.length >= 1) {
-        if (isWildcard(parts[0])) {
-            majorDirty = true;
-        }
-        else {
-            major = parseInt(parts[0], 10);
-        }
+    if (isWildcard(parts[0])) {
+        majorDirty = true;
     }
-    if (parts.length >= 2) {
-        if (isWildcard(parts[1])) {
+    else {
+        major = parseInt(parts[0], 10);
+        if (parts.length < 2 || isWildcard(parts[1])) {
             minorDirty = true;
             patchDirty = true;
         }
-        else if (!majorDirty) {
+        else {
             minor = parseInt(parts[1], 10);
+            if (parts.length < 3 || isWildcard(parts[2])) {
+                patchDirty = true;
+            }
+            else {
+                patch = parseInt(parts[2], 10);
+            }
         }
-    }
-    else if (!majorDirty) {
-        // Minor not specified → dirty
-        minorDirty = true;
-        patchDirty = true;
-    }
-    if (parts.length >= 3) {
-        if (isWildcard(parts[2])) {
-            patchDirty = true;
-        }
-        else if (!majorDirty && !minorDirty) {
-            patch = parseInt(parts[2], 10);
-        }
-    }
-    else if (!majorDirty && !minorDirty) {
-        // Patch not specified → dirty
-        patchDirty = true;
     }
     const version = new Version(major, minor, patch, prerelease, "", versionStr);
     return {

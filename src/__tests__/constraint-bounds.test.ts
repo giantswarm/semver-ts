@@ -120,6 +120,9 @@ describe("Constraints.minVersion against a brute-force search", () => {
     if (!c) continue;
     it(`finds nothing below minVersion("${constraint}")`, () => {
       const min = c.minVersion();
+      if (min) {
+        expect(c.check(min), `${constraint} admits ${min}`).toBe(true);
+      }
       const admitted = grid.filter((v) => c.check(v));
       if (admitted.length > 0) {
         expect(min).not.toBeNull();
