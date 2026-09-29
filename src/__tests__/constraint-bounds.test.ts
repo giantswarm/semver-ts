@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { Version } from "../version.js";
 import { Constraints } from "../constraints.js";
 import { constraintTests } from "./test-data/constraints.js";
+import { wildcardOperatorTests } from "./test-data/constraints-wildcard-operators.js";
 
 describe("Constraints.minVersion", () => {
   const cases: Array<[string, string | null]> = [
@@ -33,6 +34,14 @@ describe("Constraints.minVersion", () => {
     ["^1.0.0 !=1.0.0 !=1.0.1", "1.0.2"],
     [">=1.0.0 !=1.x", "2.0.0"],
     ["!=1.x", "0.0.0"],
+    // Operators in front of a bare wildcard, which stands for 0.0.0
+    [">*", "0.0.1"],
+    [">=*", "0.0.0"],
+    ["<=*", "0.0.0"],
+    ["!=*", "0.0.1"],
+    ["^*", "0.0.0"],
+    [">*-0", "0.0.0-0.0"],
+    ["!=*-0", "0.0.0-0.0"],
     // Pre-releases, when the group names one
     [">=0.0.0-0", "0.0.0-0"],
     ["<1.0.0-0", "0.0.0-0"],
@@ -42,6 +51,8 @@ describe("Constraints.minVersion", () => {
     [">1.x-0", "2.0.0-0"],
     // Nothing satisfies
     ["<0.0.0", null],
+    ["<*", null],
+    ["<*-0", null],
     [">=1.2.3 <1.0.0", null],
     ["1.2.3 !=1.2.3", null],
     ["~1.2.3 >=1.3.0", null],
@@ -100,7 +111,9 @@ describe("Constraints.minVersion against a brute-force search", () => {
     }
   }
 
-  const constraints = new Set(constraintTests.map((tc) => tc.constraint));
+  const constraints = new Set(
+    [...constraintTests, ...wildcardOperatorTests].map((tc) => tc.constraint),
+  );
 
   for (const constraint of constraints) {
     const c = Constraints.tryParse(constraint);

@@ -12,7 +12,7 @@ type Operator = "=" | "!=" | ">" | "<" | ">=" | "<=" | "~" | "^";
 interface ParsedConstraint {
   op: Operator;
   version: Version;
-  /** Was major explicitly specified (not a wildcard)? */
+  /** Is major a wildcard? minorDirty and patchDirty then stay false, as in Go. */
   majorDirty: boolean;
   /** Was minor explicitly specified? false if wildcard or absent. */
   minorDirty: boolean;
@@ -272,8 +272,6 @@ function stepPast(
       // inside a wildcard exclusion (`!=1.2.x` admits `1.2.5-0`).
       const next = nextAbove(floor, prerelease);
       if (evalConstraint(c, next, prerelease)) return next;
-      // A wildcard major (`!=*`) marks minor dirty too, and Masterminds
-      // compares its major like any other: jump to the next major as well.
       if (c.minorDirty) return lowestOf(major + 1, 0, 0, prerelease);
       if (c.patchDirty) return lowestOf(major, minor + 1, 0, prerelease);
       return nextAbove(c.version, prerelease);
@@ -330,9 +328,9 @@ function rewriteHyphenRanges(s: string): string {
 // =============================================================================
 
 // Matches a single constraint: optional operator + version (with optional prerelease/metadata)
-// Also matches bare wildcards (*, x, X) optionally followed by prerelease (-0, -alpha, etc)
+// or bare wildcard (*, x, X) optionally followed by prerelease (-0, -alpha, etc)
 const CONSTRAINT_RE =
-  /(?:([!=><~^]+)\s*)?([\d]+(?:\.(?:[\dxX*]+))?(?:\.(?:[\dxX*]+))?(?:-[\w.+-]+)?(?:\+[\w.+-]+)?)|([xX*])(?:-([\w.+-]+))?/g;
+  /(?:([!=><~^]+)\s*)?(?:([\d]+(?:\.(?:[\dxX*]+))?(?:\.(?:[\dxX*]+))?(?:-[\w.+-]+)?(?:\+[\w.+-]+)?)|([xX*])(?:-([\w.+-]+))?)/g;
 
 function parseAndGroup(groupStr: string): ParsedConstraint[] {
   // Split on commas first, then parse each part for space-separated constraints
@@ -399,8 +397,6 @@ function parseSingleConstraint(
   if (parts.length >= 1) {
     if (isWildcard(parts[0])) {
       majorDirty = true;
-      minorDirty = true;
-      patchDirty = true;
     } else {
       major = parseInt(parts[0], 10);
     }
@@ -734,11 +730,6 @@ function evalCaret(
   includePrerelease: boolean,
 ): boolean {
   if (prereleaseGate(c, v, includePrerelease)) return false;
-
-  if (c.majorDirty) {
-    // ^* makes no sense but treat as match-all
-    return true;
-  }
 
   // Must be same major
   if (v.major !== c.version.major) return false;

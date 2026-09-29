@@ -206,8 +206,6 @@ function stepPast(c, floor, prerelease) {
             const next = nextAbove(floor, prerelease);
             if (evalConstraint(c, next, prerelease))
                 return next;
-            // A wildcard major (`!=*`) marks minor dirty too, and Masterminds
-            // compares its major like any other: jump to the next major as well.
             if (c.minorDirty)
                 return lowestOf(major + 1, 0, 0, prerelease);
             if (c.patchDirty)
@@ -259,8 +257,8 @@ function rewriteHyphenRanges(s) {
 // AND group parsing
 // =============================================================================
 // Matches a single constraint: optional operator + version (with optional prerelease/metadata)
-// Also matches bare wildcards (*, x, X) optionally followed by prerelease (-0, -alpha, etc)
-const CONSTRAINT_RE = /(?:([!=><~^]+)\s*)?([\d]+(?:\.(?:[\dxX*]+))?(?:\.(?:[\dxX*]+))?(?:-[\w.+-]+)?(?:\+[\w.+-]+)?)|([xX*])(?:-([\w.+-]+))?/g;
+// or bare wildcard (*, x, X) optionally followed by prerelease (-0, -alpha, etc)
+const CONSTRAINT_RE = /(?:([!=><~^]+)\s*)?(?:([\d]+(?:\.(?:[\dxX*]+))?(?:\.(?:[\dxX*]+))?(?:-[\w.+-]+)?(?:\+[\w.+-]+)?)|([xX*])(?:-([\w.+-]+))?)/g;
 function parseAndGroup(groupStr) {
     // Split on commas first, then parse each part for space-separated constraints
     const commaParts = groupStr.split(",").map((s) => s.trim());
@@ -313,8 +311,6 @@ function parseSingleConstraint(opStr, versionStr, original) {
     if (parts.length >= 1) {
         if (isWildcard(parts[0])) {
             majorDirty = true;
-            minorDirty = true;
-            patchDirty = true;
         }
         else {
             major = parseInt(parts[0], 10);
@@ -586,10 +582,6 @@ function evalTilde(c, v, includePrerelease) {
 function evalCaret(c, v, includePrerelease) {
     if (prereleaseGate(c, v, includePrerelease))
         return false;
-    if (c.majorDirty) {
-        // ^* makes no sense but treat as match-all
-        return true;
-    }
     // Must be same major
     if (v.major !== c.version.major)
         return false;
