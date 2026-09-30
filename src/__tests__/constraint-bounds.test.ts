@@ -3,6 +3,7 @@ import { Version } from "../version.js";
 import { Constraints } from "../constraints.js";
 import { constraintTests } from "./test-data/constraints.js";
 import { wildcardOperatorTests } from "./test-data/constraints-wildcard-operators.js";
+import { caretHyphenTests } from "./test-data/constraints-caret-hyphen.js";
 
 describe("Constraints.minVersion", () => {
   const cases: Array<[string, string | null]> = [
@@ -26,6 +27,8 @@ describe("Constraints.minVersion", () => {
     [">=1.2.3 <2.0.0", "1.2.3"],
     [">=1.2.0, <1.3.0", "1.2.0"],
     ["1.2.3 - 1.4.0", "1.2.3"],
+    ["1.2.x - 1.4", "1.2.0"],
+    ["* - 1.0", "0.0.0"],
     ["^1.2.3 || ^0.5.0", "0.5.0"],
     [">=1.0.0-rc.1", "1.0.0-rc.1"],
     // Exclusions move the minimum up
@@ -49,10 +52,13 @@ describe("Constraints.minVersion", () => {
     [">1.2.3 <2.0.0-0", "1.2.4-0"],
     [">1.2-rc.1", "1.3.0-0"],
     [">1.x-0", "2.0.0-0"],
+    ["^1.2.x-alpha", "1.2.0-alpha"],
+    ["^1 <2.0.0-0", "1.0.0"],
     // Nothing satisfies
     ["<0.0.0", null],
     ["<*", null],
     ["<*-0", null],
+    ["1.0 - *", null],
     [">=1.2.3 <1.0.0", null],
     ["1.2.3 !=1.2.3", null],
     ["~1.2.3 >=1.3.0", null],
@@ -112,7 +118,9 @@ describe("Constraints.minVersion against a brute-force search", () => {
   }
 
   const constraints = new Set(
-    [...constraintTests, ...wildcardOperatorTests].map((tc) => tc.constraint),
+    [...constraintTests, ...wildcardOperatorTests, ...caretHyphenTests].map(
+      (tc) => tc.constraint,
+    ),
   );
 
   for (const constraint of constraints) {
