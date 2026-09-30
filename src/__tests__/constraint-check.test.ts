@@ -7,6 +7,10 @@ import {
   wildcardOperatorTests,
   wildcardOperatorPrereleaseTests,
 } from "./test-data/constraints-wildcard-operators.js";
+import {
+  caretHyphenTests,
+  caretHyphenPrereleaseTests,
+} from "./test-data/constraints-caret-hyphen.js";
 
 describe("Constraint checks", () => {
   for (const tc of constraintTests) {
@@ -53,4 +57,24 @@ describe("Constraint checks with an operator in front of a bare wildcard", () =>
     const { errors } = Constraints.parse(">*").validate(Version.parse("0.0.0"));
     expect(errors).toEqual(["0.0.0 does not satisfy >*"]);
   });
+});
+
+describe("Constraint checks of wildcard carets and wildcard hyphen ranges", () => {
+  for (const tc of caretHyphenTests) {
+    const label = `satisfies("${tc.version}", "${tc.constraint}") === ${tc.expected}`;
+    it(label, () => {
+      const v = Version.parse(tc.version);
+      const c = Constraints.parse(tc.constraint);
+      expect(c.check(v)).toBe(tc.expected);
+    });
+  }
+
+  for (const tc of caretHyphenPrereleaseTests) {
+    const label = `satisfiesWithPrerelease("${tc.version}", "${tc.constraint}") === ${tc.expected}`;
+    it(label, () => {
+      const v = Version.parse(tc.version);
+      const c = Constraints.parse(tc.constraint);
+      expect(c.check(v, { includePrerelease: true })).toBe(tc.expected);
+    });
+  }
 });

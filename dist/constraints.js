@@ -230,11 +230,7 @@ function stepPast(c, floor, prerelease) {
         default: {
             // `=`, `>=`, `~` and `^` admit one contiguous range starting at their
             // version: below it, move up to it; above it, nothing higher is admitted.
-            // A caret with a wildcard minor or patch ignores its pre-release, so
-            // `^1.2.x-alpha` starts at `1.2.0`, or `1.2.0-0`.
-            const bound = c.op === "^" && (c.minorDirty || c.patchDirty)
-                ? lowestOf(major, c.minorDirty ? 0 : minor, 0, prerelease)
-                : makeVersion(c.version.major, c.version.minor, c.version.patch, c.prerelease);
+            const bound = makeVersion(major, minor, c.version.patch, c.prerelease);
             return bound.gt(floor) ? bound : null;
         }
     }
@@ -246,12 +242,13 @@ function stepPast(c, floor, prerelease) {
  * Rewrite hyphen ranges: "1.0 - 2.0" → ">= 1.0, <= 2.0"
  * Must only match when there are spaces around the hyphen.
  * "1.2-5" (no spaces) is a version with prerelease, NOT a range.
+ * Either end is a constraint version as in Go's constraintRangeRegex:
+ * wildcard parts, a prerelease and metadata are allowed ("1.0 - *").
  */
+const RANGE_VERSION = String.raw `[\dxX*]+(?:\.[\dxX*]+)?(?:\.[\dxX*]+)?(?:-[\w.-]+)?(?:\+[\w.-]+)?`;
+const RANGE_RE = new RegExp(`(${RANGE_VERSION})\\s+-\\s+(${RANGE_VERSION})`, "g");
 function rewriteHyphenRanges(s) {
-    // Match: version SPACE - SPACE version
-    // Version-like: digits possibly with dots and prerelease
-    const re = /([\d]+(?:\.[\d]+)?(?:\.[\d]+)?(?:-[\w.]+)?)\s+-\s+([\d]+(?:\.[\d]+)?(?:\.[\d]+)?(?:-[\w.]+)?)/g;
-    return s.replace(re, (_, low, high) => `>= ${low}, <= ${high}`);
+    return s.replace(RANGE_RE, (_, low, high) => `>= ${low}, <= ${high}`);
 }
 // =============================================================================
 // AND group parsing
@@ -556,6 +553,8 @@ function evalTilde(c, v, includePrerelease) {
 // --- Caret ---
 /**
  * Caret range: allows changes that do not modify the leftmost non-zero digit.
+ * Go's constraintCaret: a wildcard or missing part counts as 0 in the lower
+ * bound, so `^1` rejects `1.0.0-rc.1` as `^1.0.0` does.
  *
  * ^1.2.3  := >=1.2.3, <2.0.0
  * ^0.2.3  := >=0.2.3, <0.3.0
@@ -567,49 +566,20 @@ function evalTilde(c, v, includePrerelease) {
 function evalCaret(c, v, includePrerelease) {
     if (prereleaseGate(c, v, includePrerelease))
         return false;
-    // Must be same major
-    if (v.major !== c.version.major)
+    // Every branch below relies on this lower bound, pre-releases included.
+    if (v.compare(c.version) === -1)
         return false;
-    if (c.version.major !== 0) {
-        // Major > 0: allow any minor/patch within same major, >= constraint
-        return versionGte(v, c);
-    }
-    // Major is 0: leftmost non-zero determines flexibility
-    if (c.minorDirty) {
-        // ^0.x: >=0.0.0, <1.0.0 → already guaranteed by major === 0
-        return true;
-    }
-    if (v.minor !== c.version.minor) {
-        // For 0.x.y, minor must match (minor acts as "major")
+    // Major > 0, or ^0.x: the major must match.
+    if (c.version.major > 0 || c.minorDirty)
+        return v.major === c.version.major;
+    if (v.major > 0)
         return false;
-    }
-    if (c.version.minor !== 0) {
-        // ^0.2.3: minor > 0, allow patch changes within same minor
-        return versionGte(v, c);
-    }
-    // Minor is 0 too: ^0.0.x
-    if (c.patchDirty) {
-        // ^0.0.x or ^0.0: >=0.0.0, <0.1.0 → already guaranteed
-        return true;
-    }
-    // ^0.0.3: patch must match exactly (patch acts as "major")
-    if (v.patch !== c.version.patch)
+    // Minor > 0, or ^0.0.x: the minor must match.
+    if (c.version.minor > 0 || c.patchDirty)
+        return v.minor === c.version.minor;
+    if (v.minor > 0)
         return false;
-    // Same major.minor.patch, compare prerelease
-    return comparePrerelease(v.prerelease, c.prerelease) >= 0;
-}
-/** Check if v >= c's version (considering only non-dirty parts). */
-function versionGte(v, c) {
-    if (v.major !== c.version.major)
-        return v.major > c.version.major;
-    if (c.minorDirty)
-        return true;
-    if (v.minor !== c.version.minor)
-        return v.minor > c.version.minor;
-    if (c.patchDirty)
-        return true;
-    if (v.patch !== c.version.patch)
-        return v.patch > c.version.patch;
-    return comparePrerelease(v.prerelease, c.prerelease) >= 0;
+    // ^0.0.3: the patch must match.
+    return v.patch === c.version.patch;
 }
 //# sourceMappingURL=constraints.js.map
