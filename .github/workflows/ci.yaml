@@ -1,8 +1,19 @@
 name: CI
 
+# Every commit on main and every release tag gets a run of its own, not only
+# the pull request that produced it.
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
+    tags: ['v*']
+
+# One run per ref: a superseded pull request run is cancelled, a run on main
+# or a tag never is, so every commit there keeps its result.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
