@@ -1,3 +1,0 @@
-# Advisories the JS dependency audit gate ignores until their expiry date.
-# One per line: <GHSA id> until=YYYY-MM-DD # <issue URL tracking the fix>
-# See .github/workflows/js-dependency-audit.yaml.
