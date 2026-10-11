@@ -1,5 +1,24 @@
 name: JS Dependency Audit
 
+# Two jobs:
+#
+# - `audit`: the shared workflow from giantswarm/github-workflows. On a pull
+#   request it audits the PR head and its base and posts a sticky comment with
+#   the vulnerabilities the PR adds or removes. It never fails on a
+#   vulnerability and runs on pull requests only.
+# - `gate`: fails on any high or critical advisory in package-lock.json, on
+#   pull requests, on main, on release tags, weekly and on demand. `npm audit`
+#   reads the lockfile and queries the registry; no install is needed.
+#
+# Time-boxed ignores: an advisory that cannot be fixed right away goes into
+# `.npm-audit-ignore` at the repository root, one per line, with an expiry
+# date and the issue that tracks its fix:
+#
+#   GHSA-xxxx-xxxx-xxxx until=2026-11-12 # https://github.com/giantswarm/semver-ts/issues/<n>
+#
+# An entry without `until=` or an issue URL fails the gate; an expired entry
+# no longer ignores its advisory. Delete the entry with the fix.
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -12,12 +31,82 @@ on:
       - '**/.yarnrc.yml'
       - '**/pnpm-lock.yaml'
       - '**/pnpm-workspace.yaml'
+      - '.npm-audit-ignore'
+      - '.github/workflows/js-dependency-audit.yaml'
+  push:
+    branches: [main]
+    tags: ['v*']
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
 
 permissions: {}
 
 jobs:
   audit:
+    if: github.event_name == 'pull_request'
     uses: giantswarm/github-workflows/.github/workflows/js-dependency-audit.yaml@main
     permissions:
       contents: read
       pull-requests: write
+
+  gate:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Fail on high and critical advisories
+        run: |
+          set -o pipefail
+          today="$(date -u +%F)"
+
+          # Advisories the allowlist ignores until their expiry date.
+          ignored=""
+          if [ -f .npm-audit-ignore ]; then
+            while IFS= read -r line; do
+              entry="${line%%#*}"
+              [ -z "${entry// }" ] && continue
+              id="$(awk '{print $1}' <<<"${entry}")"
+              until="$(grep -oE 'until=[0-9]{4}-[0-9]{2}-[0-9]{2}' <<<"${entry}" | cut -d= -f2 || true)"
+              if [ -z "${until}" ] || ! grep -qE 'https://github\.com/[^ ]+/issues/[0-9]+' <<<"${line}"; then
+                echo "::error file=.npm-audit-ignore::'${line}' needs until=YYYY-MM-DD and an issue URL"
+                exit 1
+              fi
+              if [[ "${until}" < "${today}" ]]; then
+                echo "::warning file=.npm-audit-ignore::${id} expired on ${until} and is no longer ignored"
+                continue
+              fi
+              ignored="${ignored} ${id}"
+            done < .npm-audit-ignore
+          fi
+
+          npm audit --json > /tmp/audit.json || true
+          if ! jq -e 'has("vulnerabilities")' /tmp/audit.json > /dev/null; then
+            echo "::error::npm audit did not complete"
+            cat /tmp/audit.json
+            exit 1
+          fi
+
+          jq -r '[.vulnerabilities[] as $v | $v.via[] | objects
+                  | select(.severity == "high" or .severity == "critical")
+                  | [(.url | ltrimstr("https://github.com/advisories/")), .severity, $v.name, .title] | @tsv]
+                 | unique[]' /tmp/audit.json > /tmp/findings.tsv
+
+          failed=0
+          while IFS=$'\t' read -r id severity pkg title; do
+            if [[ " ${ignored} " == *" ${id} "* ]]; then
+              echo "ignored  ${severity}  ${pkg}  ${id}  ${title}"
+            else
+              echo "::error::${severity} ${pkg} ${id}: ${title}"
+              failed=1
+            fi
+          done < /tmp/findings.tsv
+
+          [ "${failed}" = 0 ] && echo "No high or critical advisory outside .npm-audit-ignore."
+          exit "${failed}"
